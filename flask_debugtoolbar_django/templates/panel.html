@@ -1,0 +1,109 @@
+
+<style type="text/css">
+#djDebug .panelContent tbody th {
+    width: auto;
+}
+#djDebug .panelContent table {
+    display: table;
+}
+#djDebug tr.row1 {
+    background-color: #F5F5F5;
+}
+#djDebug #djDebugRequestVarsPanel table:first-of-type tbody tr:nth-child(odd) {
+    background-color: #F5F5F5;
+}
+pre.mongo-highlight, pre.mongo-highlight span {
+    font-family: 'Consolas', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', 'Monaco', 'Courier New', monospace !important;
+    font-size: 1.05em !important;
+}
+pre.mongo-stack-trace {
+    line-height: 2.3em !important;
+}
+table.mongo-stack-trace th {
+    text-align: left !important;
+}
+table.mongo-stack-trace td.code, table.mongo-stack-trace td.code span, table.mongo-stack-trace td.function {
+    font-family: 'Consolas', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', 'Monaco', 'Courier New', monospace !important;
+}
+table.mongo-op-table tbody {
+    width: 100% !important;
+}
+</style>
+
+<h4>Reads</h4>
+{% if queries %}
+<table class="mongo-op-table">
+    <thead>
+        <tr>
+            <th>Time (ms)</th>
+            <th>Operation</th>
+            {#<th>Collection</th>#}
+            <th style="width: 100%">Query</th>
+            <th>Stack Trace</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for query in queries %}
+            <tr class="{{ loop.cycle('djDebugOdd', 'djDebugEven') }}">
+                <td>{{ "%.4f"|format(query.duration|float) }}</td>
+                <td>{{ query.operation|title }}</td>
+                {#<td>{{ query.collection }}</td>#}
+                <td>
+                    {% if query.sql %}
+                        <pre class="mongo-highlight">{{ query.sql|format_dict|safe }}</pre>
+                    {% endif %}
+                </td>
+                <td><a href="javascript:void(0);" class="mongo-toggle-trace" data-row="queries-{{ loop.index }}">Toggle</a></td>
+            </tr>
+            <tr class="{{ loop.cycle('djDebugOdd', 'djDebugEven') }}">
+                <td colspan="8">
+                    <table class="mongo-stack-trace "id="mongo-stack-trace-queries-{{ loop.index }}">
+                        <thead>
+                            <tr>
+                                <th>Line</th>
+                                <th>File</th>
+                                <th>Function</th>
+                                <th>Code</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for line in query.stacktrace %}
+                            <tr>
+                                <td class="lineno">{{ line.1 }}</td>
+                                <td class="file">{{ line.0|embolden_file|safe }}</td>
+                                <td class="function">{{ line.2 }}</td>
+                                <td class="code">{{ line.3|highlight("python")|safe }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No queries recorded</p>
+{% endif %}
+
+<script>
+(function() {
+    var toggleButtons = document.querySelectorAll('a.mongo-toggle-trace');
+    for (var i = 0; i < toggleButtons.length; i++) {
+        (function() {
+            var button = toggleButtons[i];
+            var index = button.dataset.row;
+            var trace = document.getElementById('mongo-stack-trace-' + index);
+            trace.style.display = "none";
+
+            button.addEventListener("click", function() {
+                if (trace.style.display == "none") {
+                    trace.style.display = "";
+                } else {
+                    trace.style.display = "none";
+                }
+            }, true);
+        })();
+    }
+})();
+</script>
